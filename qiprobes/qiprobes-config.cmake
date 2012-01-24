@@ -7,14 +7,6 @@ get_filename_component(_PROBES_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 # )
 
 function(qi_add_probes tp_def)
-  if(NOT UNIX)
-    return()
-  endif()
-
-  if(APPLE)
-    return()
-  endif()
-
   cmake_parse_arguments(ARG "" "PROVIDER" "INSTRUMENTED_FILES" ${ARGN})
   set(_provider "${ARG_PROVIDER}")
   if(NOT _provider)
@@ -46,6 +38,7 @@ function(qi_add_probes tp_def)
   # call an external templating engine to include content from tp_def an
   # get proper dependency declaration.
   add_custom_command(OUTPUT "${_tp_h}"
+                     COMMENT "Generating probes in ${_tp_h} ..."
                      COMMAND "python" ARGS
                      "${_PROBES_CMAKE_DIR}/tpl.py"
                         -d _tp_h_reinclusion_protection "${_tp_h_reinclusion_protection}"
@@ -56,7 +49,11 @@ function(qi_add_probes tp_def)
                         "${_PROBES_CMAKE_DIR}/tp_probes.in.h"
                      MAIN_DEPENDENCY ${tp_def})
 
+
   if(WITH_PROBES)
+    if(NOT UNIX OR APPLE)
+      qi_error("WITH_PROBES is only available on linux")
+    endif()
     # Generate ${tp_def_base}.c
     set(_tp_c ${CMAKE_CURRENT_BINARY_DIR}/${_tp_def_base}.c)
     configure_file("${_PROBES_CMAKE_DIR}/tp_probes.in.c" "${_tp_c}")
