@@ -58,9 +58,20 @@ function(qi_add_probes tp_def)
     set(_tp_c ${CMAKE_CURRENT_BINARY_DIR}/${_tp_def_base}.c)
     configure_file("${_PROBES_CMAKE_DIR}/tp_probes.in.c" "${_tp_c}")
 
+    # set flag to enable probe in each instrumented files
     set_source_files_properties(${_instrumented_files}
       PROPERTIES
-        COMPILE_FLAGS "-DWITH_PROBES -DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE"
+        COMPILE_FLAGS "-DWITH_PROBES"
+    )
+
+    # the tp_def file should included only once with following flags set,
+    # because this inclusion will define functions, and we do not want these
+    # functions to be defined twice.
+    # Thus, we set the flags only for the first instrumented file
+    list(GET _instrumented_files 0 _first_instrumented_file)
+    set_source_files_properties(${_first_instrumented_file}
+      PROPERTIES
+        COMPILE_FLAGS "-DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE"
     )
 
     # create the probes lib (to be LD_PRELOAD'ed)
