@@ -60,7 +60,7 @@ function(qi_add_probes tp_def)
 
     set_source_files_properties(${_instrumented_files}
       PROPERTIES
-        COMPILE_FLAGS "-DWITH_PROBES -DTRACEPOINT_DEFINE"
+        COMPILE_FLAGS "-DWITH_PROBES -DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE"
     )
 
     # create the probes lib (to be LD_PRELOAD'ed)
