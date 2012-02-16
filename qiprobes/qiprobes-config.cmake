@@ -59,20 +59,35 @@ function(qi_add_probes tp_def)
     configure_file("${_PROBES_CMAKE_DIR}/tp_probes.in.c" "${_tp_c}")
 
     # set flag to enable probe in each instrumented files
-    set_source_files_properties(${_instrumented_files}
-      PROPERTIES
-        COMPILE_FLAGS "-DWITH_PROBES"
-    )
+    set(_new_compile_flags "-DWITH_PROBES")
+    foreach(_instrumented_file "${_instrumented_files}")
+        get_source_file_property(_compile_flags "${_instrumented_file}" COMPILE_FLAGS)
+        if ("${_compile_flags}" STREQUAL "NOTFOUND")
+           set(_compile_flags "${_new_compile_flags}")
+        else()
+           set(_compile_flags "${_compile_flags} ${_new_compile_flags}")
+        endif()
+        set_source_files_properties(${_instrumented_file}
+          PROPERTIES
+          COMPILE_FLAGS "${_compile_flags}")
+    endforeach()
+
 
     # the tp_def file should included only once with following flags set,
     # because this inclusion will define functions, and we do not want these
     # functions to be defined twice.
     # Thus, we set the flags only for the first instrumented file
-    list(GET _instrumented_files 0 _first_instrumented_file)
-    set_source_files_properties(${_first_instrumented_file}
+    list(GET _instrumented_files 0 _instrumented_file)
+    set(_new_compile_flags "-DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE")
+    get_source_file_property(_compile_flags "${_instrumented_file}" COMPILE_FLAGS)
+    if ("${_compile_flags}" STREQUAL "NOTFOUND")
+       set(_compile_flags "${_new_compile_flags}")
+    else()
+       set(_compile_flags "${_compile_flags} ${_new_compile_flags}")
+    endif()
+    set_source_files_properties(${_instrumented_file}
       PROPERTIES
-        COMPILE_FLAGS "-DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE"
-    )
+      COMPILE_FLAGS "${_compile_flags}")
 
     # create the probes lib (to be LD_PRELOAD'ed)
     set(_probes_lib ${_tp_def_base})
