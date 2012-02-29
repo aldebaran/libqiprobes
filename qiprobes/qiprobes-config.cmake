@@ -7,7 +7,10 @@ get_filename_component(_PROBES_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 # )
 
 function(qi_add_probes tp_def)
-  find_program(_python_executable NAMES python2 python python.exe)
+  # Find python, but avoid using python from python package
+  find_program(_python_executable
+    NAMES python2 python python.exe
+    NO_CMAKE_FIND_ROOT_PATH)
   if (NOT _python_executable)
     qi_error("qi_add_probes needs python executable in PATH")
   endif()
