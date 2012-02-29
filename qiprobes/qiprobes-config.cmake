@@ -7,6 +7,10 @@ get_filename_component(_PROBES_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 # )
 
 function(qi_add_probes tp_def)
+  find_program(_python_executable python2 python)
+  if (NOT _python_executable)
+    qi_error("qi_add_probes needs python executable in PATH")
+  endif()
   cmake_parse_arguments(ARG "" "PROVIDER" "INSTRUMENTED_FILES" ${ARGN})
   set(_provider "${ARG_PROVIDER}")
   if(NOT _provider)
@@ -39,7 +43,7 @@ function(qi_add_probes tp_def)
   # get proper dependency declaration.
   add_custom_command(OUTPUT "${_tp_h}"
                      COMMENT "Generating probes in ${_tp_h} ..."
-                     COMMAND "python" ARGS
+                     COMMAND "${_python_executable}" ARGS
                      "${_PROBES_CMAKE_DIR}/tpl.py"
                         -d _tp_h_reinclusion_protection "${_tp_h_reinclusion_protection}"
                         -d _provider "${_provider}"
