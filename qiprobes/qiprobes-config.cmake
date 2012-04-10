@@ -1,11 +1,24 @@
 get_filename_component(_PROBES_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 
+function(append_source_file_property property value)
+    foreach(_file IN LISTS ARGN)
+    get_source_file_property(_current_value "${_file}" "${property}")
+    if ("${_current_value}" STREQUAL "NOTFOUND")
+       set(_new_value "${value}")
+    else()
+       set(_new_value "${_current_value} ${value}")
+    endif()
+    set_source_files_properties(${_file}
+      PROPERTIES "${property}"
+      "${_new_value}")
+  endforeach()
+endfunction(append_source_file_property)
+
 ##
 # qi_add_probes(tp_sensorlog.in.h
 #  PROVIDER qi_sensorlog
 #  INSTRUMENTED_FILES alsensorlog.cpp
 # )
-
 function(qi_add_probes tp_def)
   # Find python, but avoid using python from python package
   find_program(_python_executable
@@ -66,35 +79,21 @@ function(qi_add_probes tp_def)
     configure_file("${_PROBES_CMAKE_DIR}/tp_probes.in.c" "${_tp_c}")
 
     # set flag to enable probe in each instrumented files
-    set(_new_compile_flags "-DWITH_PROBES")
-    foreach(_instrumented_file "${_instrumented_files}")
-        get_source_file_property(_compile_flags "${_instrumented_file}" COMPILE_FLAGS)
-        if ("${_compile_flags}" STREQUAL "NOTFOUND")
-           set(_compile_flags "${_new_compile_flags}")
-        else()
-           set(_compile_flags "${_compile_flags} ${_new_compile_flags}")
-        endif()
-        set_source_files_properties(${_instrumented_file}
-          PROPERTIES
-          COMPILE_FLAGS "${_compile_flags}")
-    endforeach()
+    append_source_file_property(
+        COMPILE_FLAGS
+        "-DWITH_PROBES"
+        ${_instrumented_files})
 
 
     # the tp_def file should included only once with following flags set,
     # because this inclusion will define functions, and we do not want these
     # functions to be defined twice.
     # Thus, we set the flags only for the first instrumented file
-    list(GET _instrumented_files 0 _instrumented_file)
-    set(_new_compile_flags "-DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE")
-    get_source_file_property(_compile_flags "${_instrumented_file}" COMPILE_FLAGS)
-    if ("${_compile_flags}" STREQUAL "NOTFOUND")
-       set(_compile_flags "${_new_compile_flags}")
-    else()
-       set(_compile_flags "${_compile_flags} ${_new_compile_flags}")
-    endif()
-    set_source_files_properties(${_instrumented_file}
-      PROPERTIES
-      COMPILE_FLAGS "${_compile_flags}")
+    list(GET _instrumented_files 0 _first_instrumented_file)
+    append_source_file_property(
+        COMPILE_FLAGS
+        "-DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE"
+        ${_first_instrumented_file})
 
     # create the probes lib (to be LD_PRELOAD'ed)
     set(_probes_lib ${_tp_def_base})
