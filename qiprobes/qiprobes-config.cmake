@@ -53,7 +53,7 @@ function(qi_add_probes tp_def)
 
   # Generate ${tp_def_base}.h
   get_filename_component(_tp_def_base ${tp_def} NAME_WE)
-  set(_tp_h ${CMAKE_CURRENT_BINARY_DIR}/${_tp_def_base}.h)
+  set(_tp_h "${_tp_def_base}.h")
   string(TOUPPER "${_tp_def_base}_H" _tp_h_reinclusion_protection)
   # call an external templating engine to include content from tp_def an
   # get proper dependency declaration.
