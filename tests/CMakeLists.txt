@@ -18,6 +18,15 @@ qi_create_bin(hello NO_INSTALL
     hello_say.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/tp_hello.h)
 
+qi_add_probes(subdir/tp_subdirhello.in.h
+    PROVIDER qi_probes_tests_subdir
+    INSTRUMENTED_FILES subdir/subdir.cpp subdir_say.cpp)
+qi_create_bin(subdirhello NO_INSTALL
+    SRC
+    subdir/subdirhello.cpp
+    subdir/subdirhello_say.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/tp_subdirhello.h)
 if (WITH_PROBES)
     qi_use_lib(hello DL)
+    qi_use_lib(subdirhello DL)
 endif ()
