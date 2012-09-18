@@ -5,7 +5,7 @@ This program does nothing but trace through LTTng.
 By default, it is built with WITH_PROBES=OFF, which means
 the probes are not included.
 
-This build should work on all platforms, it ensures the probes actuvation
+This build should work on all platforms, it ensures the probes activation
 mechanism works well.
 
 When build with WITH_PROBES=ON, provided you are using linux and have the
@@ -16,14 +16,16 @@ are properly collected.
   qm
   SDK_DIR=~/ar/m/build-linux64/qiprobes/sdk
   # check the tracepoints are built in the exec:
-  nm ${SDK_DIR}/bin/hello |grep qi_probes_test_hello
+  nm ${SDK_DIR}/bin/hello |grep qi_probes_tests_hello
   tests/run_hello.bash ${SDK_DIR}
 
 
 You should get an output similar to this::
 
-  [10:09:37.429964404] (+?.?????????) qi_probes_test_hello:counting: { 1 }, { counter = 0 }
-  [10:09:37.429966859] (+0.000002455) qi_probes_test_hello:counting: { 1 }, { counter = 1 }
-  [10:09:37.429967505] (+0.000000646) qi_probes_test_hello:counting: { 1 }, { counter = 2 }
-  [10:09:37.429967791] (+0.000000286) qi_probes_test_hello:counting: { 1 }, { counter = 3 }
+  [21:07:55.301283867] (+?.?????????) sbarthelemy-de:hello:26708 qi_probes_tests_hello:counting: { cpu_id = 0 }, { counter = 0 }
+  [21:07:55.301286607] (+0.000002740) sbarthelemy-de:hello:26708 qi_probes_tests_hello:saying: { cpu_id = 0 }, { message = 0 }
+  [21:07:55.301322043] (+0.000035436) sbarthelemy-de:hello:26708 qi_probes_tests_hello:counting: { cpu_id = 0 }, { counter = 1 }
+  [21:07:55.301322570] (+0.000000527) sbarthelemy-de:hello:26708 qi_probes_tests_hello:saying: { cpu_id = 0 }, { message = 1 }
+  [21:07:55.301325487] (+0.000002917) sbarthelemy-de:hello:26708 qi_probes_tests_hello:counting: { cpu_id = 0 }, { counter = 2 }
+  [21:07:55.301325829] (+0.000000342) sbarthelemy-de:hello:26708 qi_probes_tests_hello:saying: { cpu_id = 0 }, { message = 2 }
   ...
