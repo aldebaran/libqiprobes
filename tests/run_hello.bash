@@ -6,6 +6,7 @@ lttng create
 lttng enable-event -a -u
 lttng start
 LD_PRELOAD=lib/probes/libtp_hello.so bin/hello
+#LD_PRELOAD=lib/probes/libtp_subdirhello.so bin/subdirhello
 lttng stop
 lttng destroy
 babeltrace ~/lttng-traces/

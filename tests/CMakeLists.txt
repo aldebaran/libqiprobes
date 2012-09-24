@@ -19,8 +19,8 @@ qi_create_bin(hello NO_INSTALL
     ${CMAKE_CURRENT_BINARY_DIR}/tp_hello.h)
 
 qi_add_probes(subdir/tp_subdirhello.in.h
-    PROVIDER qi_probes_tests_subdir
-    INSTRUMENTED_FILES subdir/subdir.cpp subdir_say.cpp)
+    PROVIDER qi_probes_tests_subdirhello
+    INSTRUMENTED_FILES subdir/subdirhello.cpp subdirhello_say.cpp)
 qi_create_bin(subdirhello NO_INSTALL
     SRC
     subdir/subdirhello.cpp
