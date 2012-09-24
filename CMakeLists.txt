@@ -13,5 +13,25 @@ project(qiprobes)
 find_package(qibuild)
 
 add_subdirectory("qiprobes")
-add_subdirectory("tests")
+
+# tests.
+#
+# If WITH_PROBES==ON, build the same tests with different configs (including
+# WITH_PROBES=OFF!).
+# The "tests" source directory is included several times with different
+# binary directories which serve as distinct namespaces.
+#
+# The script runtests.py allows to run them all.
+
+if(WITH_PROBES)
+  set(QIPROBES_PROVIDER_BUILD_MODE "BUILTIN")
+  add_subdirectory("tests" "tests-builtin")
+
+  set(QIPROBES_PROVIDER_BUILD_MODE "SHARED")
+  add_subdirectory("tests" "tests-shared")
+
+  set(WITH_PROBES OFF)
+endif()
+
+add_subdirectory("tests" "tests-off")
 

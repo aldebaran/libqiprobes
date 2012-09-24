@@ -1,7 +1,13 @@
 get_filename_component(_PROBES_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 
+# this variable lets us choose how we build and link the probes providers
+# todo: maybe we should make it a real option (in the cache)
+if(NOT DEFINED QIPROBES_PROVIDER_BUILD_MODE)
+    set(QIPROBES_PROVIDER_BUILD_MODE "SHARED")
+endif()
+
 function(append_source_file_property property value)
-    foreach(_file IN LISTS ARGN)
+  foreach(_file IN LISTS ARGN)
     get_source_file_property(_current_value "${_file}" "${property}")
     if ("${_current_value}" STREQUAL "NOTFOUND")
        set(_new_value "${value}")
@@ -33,23 +39,29 @@ function(qi_add_probes tp_def)
     qi_error("PROVIDER argument is mandatory")
   endif()
 
+  set(tp_def "${CMAKE_CURRENT_SOURCE_DIR}/${tp_def}")
+  if(NOT (${tp_def} MATCHES "^.*\\.in\\.h$"))
+    qi_error("Cannot create probe. The probe definitions file ${tp_def} does not end with .in.h")
+  endif()
+  if(NOT EXISTS ${tp_def})
+    qi_error("Cannot create probe. Could not find probe definitions file. The file should be: ${tp_def}")
+  endif()
+
   set(_instrumented_files ${ARG_INSTRUMENTED_FILES})
+  # Check the instrumented file really exist. This is not strictly necessary,
+  # helps wasting hours because of a stupid typo (trust me).
+  # Yet this check may be annoying if we ever want to instrument generated
+  # files.
+  foreach(_file IN LISTS _instrumented_files)
+    # get absolute filename, otherwise cmake cannot test file existance
+    get_filename_component(_file_abs "${_file}" ABSOLUTE)
+    if(NOT EXISTS ${_file_abs})
+      qi_error("Cannot create probe. Could not find the following instrumented file: ${_file}")
+    endif()
+  endforeach()
 
   # So that we find the header we are going to generate:
   include_directories("${CMAKE_CURRENT_BINARY_DIR}")
-
-  set(tp_def "${CMAKE_CURRENT_SOURCE_DIR}/${tp_def}")
-  if(NOT (${tp_def} MATCHES "^.*\\.in\\.h$"))
-    qi_error("Cannot create probe.
-    The probe definitions file ${tp_def} does not end with .in.h)
-    ")
-  endif()
-  if(NOT EXISTS ${tp_def})
-    qi_error("Cannot create probe.
-    Could not find probe definitions file.
-    The file should be: ${tp_def})
-    ")
-  endif()
 
   # Generate ${tp_def_base}.h
   get_filename_component(_tp_def_base ${tp_def} NAME_WE)
@@ -68,7 +80,8 @@ function(qi_add_probes tp_def)
                         -o "${_tp_h}"
                         "${_PROBES_CMAKE_DIR}/tp_probes.in.h"
                      MAIN_DEPENDENCY ${tp_def})
-
+  # sources files that instrumented object should depend on (and build if needed)
+  set("${_tp_def_base}_SOURCES" "${CMAKE_CURRENT_BINARY_DIR}/${_tp_h}")
 
   if(WITH_PROBES)
     if(NOT UNIX OR APPLE)
@@ -84,28 +97,83 @@ function(qi_add_probes tp_def)
         "-DWITH_PROBES"
         ${_instrumented_files})
 
-
     # the tp_def file should included only once with following flags set,
     # because this inclusion will define functions, and we do not want these
     # functions to be defined twice.
     # Thus, we set the flags only for the first instrumented file
     list(GET _instrumented_files 0 _first_instrumented_file)
+    set(_flags "-DTRACEPOINT_DEFINE")
+    if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
+      set(_flags "${_flags} -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE")
+    endif()
     append_source_file_property(
-        COMPILE_FLAGS
-        "-DTRACEPOINT_DEFINE -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE"
+        COMPILE_FLAGS "${_flags}"
         ${_first_instrumented_file})
 
-    # create the probes lib (to be LD_PRELOAD'ed)
-    set(_probes_lib ${_tp_def_base})
-    qi_create_lib("${_probes_lib}"
-      INTERNAL SHARED
-      ${_tp_h}
-      ${_tp_c}
-      SUBFOLDER probes)
-
-    # note: it is not really necessary to link with URCU,
-    # LLTNG-UST only needs the urcu/compiler.h header.
-    qi_use_lib("${_probes_lib}" LTTNG-UST URCU)
+    # create the probes provider lib.
+    # We can either create a shared lib, which should be LD_PRELOAD'ed at
+    # runtime, or a static one, which should be linked at run time
+    #
+    # Here is an example:
+    # libbn-ipc implements the synchronisation mechanism between the HAL and
+    # the DCM. The HAL is a standalone apllication, the DCM is a module (shared
+    # library) which is LD_PRELOAD'ed by the NAOqi application.
+    #
+    # We added probes to libbn-ipc.a. If we build the probes provider into a
+    # shared library it should be LD_PRELOAD'ed when running both the HAL *and*
+    # NAOqi. The provider library must be linked with lttng-ust and the target
+    # applications (NAOqi and the HAL) must be linked with libdl.
+    # If we build the provider lib as a static library, we need to link it with
+    # lttng-ust, and then link libbn-ipc.a with the provier lib. C'est tout!
+    if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "BUILTIN")
+      set("${_tp_def_base}_SOURCES" "${${_tp_def_base}_SOURCES};${_tp_c}")
+    elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
+      set(_probes_lib ${_tp_def_base})
+      qi_create_lib("${_probes_lib}"
+          STATIC
+        ${_tp_h}
+        ${_tp_c}
+        SUBFOLDER probes)
+      qi_stage_lib("${_probes_lib}")
+      # note: it is not really necessary to link with URCU,
+      #       LLTNG-UST only needs the urcu/compiler.h header.
+      qi_use_lib("${_probes_lib}" LTTNG-UST URCU)
+    elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
+      set(_probes_lib ${_tp_def_base})
+      qi_create_lib("${_probes_lib}"
+          INTERNAL SHARED
+        ${_tp_h}
+        ${_tp_c}
+        SUBFOLDER probes)
+      # note: I'm not sure about the "INTERNAL" above.
+      # note: no need to stage the lib, it will be LD_PRELOADED but not linked
+      #       with.
+      # note: it is not really necessary to link with URCU,
+      #       LLTNG-UST only needs the urcu/compiler.h header.
+      qi_use_lib("${_probes_lib}" LTTNG-UST URCU)
+    else()
+      qi_error("QIPROBES_PROVIDER_BUILD_MODE should be BUILTIN, STATIC or SHARED. However its value is: \"${QIPROBES_PROVIDER_BUILD_MODE}\"")
+    endif()
   endif()
+  # publish the variable in the caller namespace
+  set("${_tp_def_base}_SOURCES" "${${_tp_def_base}_SOURCES}" PARENT_SCOPE)
+endfunction()
 
+function(qi_use_probes target tp_def_base)
+  if(WITH_PROBES)
+    if(NOT UNIX OR APPLE)
+      qi_error("WITH_PROBES is only available on linux")
+    endif()
+    if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "BUILTIN")
+      # note: it is not really necessary to link with URCU,
+      #       LLTNG-UST only needs the urcu/compiler.h header.
+      qi_use_lib("${target}" LTTNG-UST URCU DL)
+    elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
+      qi_use_lib("${target}" "${tp_def_base}" DL)
+    elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
+      qi_use_lib("${target}" DL)
+    else()
+      qi_error("QIPROBES_PROVIDER_BUILD_MODE should be BUILTIN, STATIC or SHARED. However its value is: \"${QIPROBES_PROVIDER_BUILD_MODE}\"")
+    endif()
+  endif()
 endfunction()
