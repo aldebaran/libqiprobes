@@ -1,2 +1,4 @@
 <project name="qiprobes">
+    <sphinxdoc name="qiprobes" src="doc" release="false">
+    </sphinxdoc>
 </project>
