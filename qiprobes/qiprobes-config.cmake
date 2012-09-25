@@ -1,11 +1,28 @@
+##### preliminaries
+
 get_filename_component(_PROBES_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
 
+# Find python, but avoid using python from python package
+find_program(_python_executable
+  NAMES python2 python python.exe
+  NO_CMAKE_FIND_ROOT_PATH)
+if (NOT _python_executable)
+  qi_error("qiprobes needs python executable in PATH")
+endif()
+
 # this variable lets us choose how we build and link the probes providers
-# todo: maybe we should make it a real option (in the cache)
+# todo: maybe we should make it a real option (in the cache) or set it
+#       on a per probe basis
 if(NOT DEFINED QIPROBES_PROVIDER_BUILD_MODE)
     set(QIPROBES_PROVIDER_BUILD_MODE "SHARED")
 endif()
 
+##### internal functions
+
+##
+# append_source_file_property(property value
+#     file0.c file1.c ...
+# )
 function(append_source_file_property property value)
   foreach(_file IN LISTS ARGN)
     get_source_file_property(_current_value "${_file}" "${property}")
@@ -18,99 +35,72 @@ function(append_source_file_property property value)
       PROPERTIES "${property}"
       "${_new_value}")
   endforeach()
-endfunction(append_source_file_property)
+endfunction()
 
-##
-# qi_add_probes(tp_sensorlog.in.h
-#  PROVIDER qi_sensorlog
-#  INSTRUMENTED_FILES alsensorlog.cpp
-# )
-function(qi_add_probes tp_def)
-  # Find python, but avoid using python from python package
-  find_program(_python_executable
-    NAMES python2 python python.exe
-    NO_CMAKE_FIND_ROOT_PATH)
-  if (NOT _python_executable)
-    qi_error("qi_add_probes needs python executable in PATH")
-  endif()
-  cmake_parse_arguments(ARG "" "PROVIDER" "INSTRUMENTED_FILES" ${ARGN})
-  set(_provider "${ARG_PROVIDER}")
+# create_probe(probe tp_declaration.in.h
+#  [DO_NOT_GENERATE_CPP]
+#  [USE_LEGACY_DIRECTORY]
+#  PROVIDER_NAME qi_probe)
+function(create_probe probe tp_in_h)
+    cmake_parse_arguments(ARG "DO_NOT_GENERATE_CPP;USE_LEGACY_DIRECTORY" "PROVIDER_NAME" "" ${ARGN})
+  set(_provider "${ARG_PROVIDER_NAME}")
   if(NOT _provider)
-    qi_error("PROVIDER argument is mandatory")
+    qi_error("Cannot create probe. PROVIDER_NAME argument is mandatory")
   endif()
-
-  set(tp_def "${CMAKE_CURRENT_SOURCE_DIR}/${tp_def}")
-  if(NOT (${tp_def} MATCHES "^.*\\.in\\.h$"))
-    qi_error("Cannot create probe. The probe definitions file ${tp_def} does not end with .in.h")
+  if(IS_ABSOLUTE tp_in_h)
+    qi_error("Cannot create probe. The path to the probe definitions file is absolute")
   endif()
-  if(NOT EXISTS ${tp_def})
-    qi_error("Cannot create probe. Could not find probe definitions file. The file should be: ${tp_def}")
+  if(NOT (${tp_in_h} MATCHES "^.*\\.in\\.h$"))
+    qi_error("Cannot create probe. The probe definitions file ${tp_in_h} does not end with .in.h")
   endif()
+  get_filename_component(_tp_in_h_abs "${tp_in_h}" ABSOLUTE)
+  if(NOT EXISTS ${_tp_in_h_abs})
+    qi_error("Cannot create probe. Could not find probe definitions file ${tp_in_h}")
+  endif()
+  # Generate ${_tp}.h
+  get_filename_component(_tp_path "${tp_in_h}" PATH)
+  get_filename_component(_tp_name "${tp_in_h}" NAME_WE)
+  if(_tp_path AND NOT ARG_USE_LEGACY_DIRECTORY)
+    set(_tp "${_tp_path}/${_tp_name}")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${_tp_path}")
+    include_directories("${CMAKE_CURRENT_BINARY_DIR}/${_tp_path}")
+  else()
+    set(_tp "${_tp_name}")
+    include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+  set(_tp_h "${CMAKE_CURRENT_BINARY_DIR}/${_tp}.h")
 
-  set(_instrumented_files ${ARG_INSTRUMENTED_FILES})
-  # Check the instrumented file really exist. This is not strictly necessary,
-  # helps wasting hours because of a stupid typo (trust me).
-  # Yet this check may be annoying if we ever want to instrument generated
-  # files.
-  foreach(_file IN LISTS _instrumented_files)
-    # get absolute filename, otherwise cmake cannot test file existance
-    get_filename_component(_file_abs "${_file}" ABSOLUTE)
-    if(NOT EXISTS ${_file_abs})
-      qi_error("Cannot create probe. Could not find the following instrumented file: ${_file}")
-    endif()
-  endforeach()
-
-  # So that we find the header we are going to generate:
-  include_directories("${CMAKE_CURRENT_BINARY_DIR}")
-
-  # Generate ${tp_def_base}.h
-  get_filename_component(_tp_def_base ${tp_def} NAME_WE)
-  set(_tp_h "${_tp_def_base}.h")
-  string(TOUPPER "${_tp_def_base}_H" _tp_h_reinclusion_protection)
-  # call an external templating engine to include content from tp_def an
+  # TODO: generate guard from _tp instead of _tp_name
+  # TODO: check the providers in ${_tp_in_h_abs} are all equal to ${_provider}
+  #       or deduce one from the other.
+  string(TOUPPER "${_tp_name}_H" _tp_h_reinclusion_protection)
+  # call an external templating engine to include content from tp_in_h and
   # get proper dependency declaration.
   add_custom_command(OUTPUT "${_tp_h}"
-                     COMMENT "Generating probes in ${_tp_h} ..."
+                     COMMENT "Generating tracepoints declaration in ${_tp_h} ..."
                      COMMAND "${_python_executable}" ARGS
-                     "${_PROBES_CMAKE_DIR}/tpl.py"
-                        -d _tp_h_reinclusion_protection "${_tp_h_reinclusion_protection}"
+                     "${_PROBES_CMAKE_DIR}/tpl.py" -d _tp_h_reinclusion_protection "${_tp_h_reinclusion_protection}"
                         -d _provider "${_provider}"
                         -d _tp_h "${_tp_h}"
-                        -i _tp_def_contents "${tp_def}"
+                        -i _tp_def_contents "${_tp_in_h_abs}"
                         -o "${_tp_h}"
                         "${_PROBES_CMAKE_DIR}/tp_probes.in.h"
-                     MAIN_DEPENDENCY ${tp_def})
-  # sources files that instrumented object should depend on (and build if needed)
-  set("${_tp_def_base}_SOURCES" "${CMAKE_CURRENT_BINARY_DIR}/${_tp_h}")
+                     MAIN_DEPENDENCY ${tp_in_h})
+  # submodule collecting dependencies (sources files and libraries) of the
+  # instrumented objects
+  qi_submodule_create("${probe}" SRC "${_tp_h}")
 
   if(WITH_PROBES)
     if(NOT UNIX OR APPLE)
       qi_error("WITH_PROBES is only available on linux")
     endif()
-    # Generate ${tp_def_base}.c
-    set(_tp_c ${CMAKE_CURRENT_BINARY_DIR}/${_tp_def_base}.c)
-    configure_file("${_PROBES_CMAKE_DIR}/tp_probes.in.c" "${_tp_c}")
+    qi_submodule_add("${probe}" DEPENDS DL)
 
-    # set flag to enable probe in each instrumented files
-    append_source_file_property(
-        COMPILE_FLAGS
-        "-DWITH_PROBES"
-        ${_instrumented_files})
+    # Generate ${probe}.c
+    set(_tp_c ${CMAKE_CURRENT_BINARY_DIR}/${probe}.c)
+    configure_file("${_PROBES_CMAKE_DIR}/probe.in.c" "${_tp_c}")
 
-    # the tp_def file should included only once with following flags set,
-    # because this inclusion will define functions, and we do not want these
-    # functions to be defined twice.
-    # Thus, we set the flags only for the first instrumented file
-    list(GET _instrumented_files 0 _first_instrumented_file)
-    set(_flags "-DTRACEPOINT_DEFINE")
-    if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
-      set(_flags "${_flags} -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE")
-    endif()
-    append_source_file_property(
-        COMPILE_FLAGS "${_flags}"
-        ${_first_instrumented_file})
-
-    # create the probes provider lib.
+    # create the probes provider lib from ${_tp_c}
     # We can either create a shared lib, which should be LD_PRELOAD'ed at
     # runtime, or a static one, which should be linked at run time
     #
@@ -126,40 +116,100 @@ function(qi_add_probes tp_def)
     # If we build the provider lib as a static library, we need to link it with
     # lttng-ust, and then link libbn-ipc.a with the provier lib. C'est tout!
     if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "BUILTIN")
-      set("${_tp_def_base}_SOURCES" "${${_tp_def_base}_SOURCES};${_tp_c}")
-    elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
-      set(_probes_lib ${_tp_def_base})
-      qi_create_lib("${_probes_lib}"
-          STATIC
-        ${_tp_h}
-        ${_tp_c}
-        SUBFOLDER probes)
-      qi_stage_lib("${_probes_lib}")
-      # note: it is not really necessary to link with URCU,
-      #       LLTNG-UST only needs the urcu/compiler.h header.
-      qi_use_lib("${_probes_lib}" LTTNG-UST URCU)
-    elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
-      set(_probes_lib ${_tp_def_base})
-      qi_create_lib("${_probes_lib}"
-          INTERNAL SHARED
-        ${_tp_h}
-        ${_tp_c}
-        SUBFOLDER probes)
-      # note: I'm not sure about the "INTERNAL" above.
-      # note: no need to stage the lib, it will be LD_PRELOADED but not linked
-      #       with.
-      # note: it is not really necessary to link with URCU,
-      #       LLTNG-UST only needs the urcu/compiler.h header.
-      qi_use_lib("${_probes_lib}" LTTNG-UST URCU)
+      # note: it is not really necessary to link with URCU, but LLTNG-UST needs
+      #       the urcu/compiler.h header.
+      qi_submodule_add("${probe}"
+          SRC "${_tp_c}"
+          DEPENDS LTTNG-UST URCU)
+    elseif((QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC") OR
+           (QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED"))
+      if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
+        qi_error("qiprobes: QIPROBES_PROVIDER_BUILD_MODE == STATIC is currently not supported")
+        # because it was never tested
+      endif()
+      set(_probe_lib ${probe})
+      qi_create_lib("${_probe_lib}"
+          ${QIPROBES_PROVIDER_BUILD_MODE} # linkage (note: shoud we add INTERNAL?)
+          ${_tp_h}
+          ${_tp_c}
+          SUBFOLDER probes)
+      # note: it is not really necessary to link with URCU, but LLTNG-UST needs
+      #       the urcu/compiler.h header.
+      qi_use_lib("${_probe_lib}" LTTNG-UST URCU DL)
+      if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
+        # note: we do not stage the shared lib because it will be LD_PRELOADED
+        #       but not linked with.
+        qi_stage_lib("${_probe_lib}")
+        qi_submodule_add("${probe}" DEPENDS "${_probe_lib}")
+      endif()
     else()
-      qi_error("QIPROBES_PROVIDER_BUILD_MODE should be BUILTIN, STATIC or SHARED. However its value is: \"${QIPROBES_PROVIDER_BUILD_MODE}\"")
+      qi_error("QIPROBES_PROVIDER_BUILD_MODE should be BUILTIN, STATIC or SHARED. However its current value is: \"${QIPROBES_PROVIDER_BUILD_MODE}\"")
+    endif()
+
+    if(NOT ARG_DO_NOT_GENERATE_CPP)
+      # In addition to the flag set in qi_instrument_files,
+      # one and only one of the application files
+      # should include ${_tp_h} with the TRACEPOINT_DEFINE macro set.
+      #
+      # As its name suggests, this macro will trigger the definition of
+      # functions.
+      # If it is done multiple times, compilation will fail because of multiple
+      # definitions. If it is not done, (or if the file does not include
+      # ${_tp_h}), linking will fail with messages like "undefined reference to
+      # `tracepoint_dlopen'".
+      #
+      # To avoid these issues, instead of using an (user-provided) instrumented
+      # file for this purpose, we use a generated file (${_tp_ccp})
+      # which acts as an empty instrumented file.
+      # Alas, I do not expect this trick to work for C projects. (We may
+      # detect the language and generate C/C++ accordingly).
+      set(_tp_cpp ${CMAKE_CURRENT_BINARY_DIR}/${probe}.cpp)
+      configure_file("${_PROBES_CMAKE_DIR}/probe.in.cpp" "${_tp_cpp}")
+      set(_flags "-DWITH_PROBES -DTRACEPOINT_DEFINE")
+      if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
+        set(_flags "${_flags} -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE")
+      endif()
+      append_source_file_property(COMPILE_FLAGS "${_flags}" "${_tp_cpp}")
+      qi_submodule_add("${probe}" SRC "${_tp_cpp}")
     endif()
   endif()
-  # publish the variable in the caller namespace
-  set("${_tp_def_base}_SOURCES" "${${_tp_def_base}_SOURCES}" PARENT_SCOPE)
+  # tell the world the probe has been created
+  qi_global_set("QIPROBES_${probe}_IS_CREATED" TRUE)
 endfunction()
 
-function(qi_use_probes target tp_def_base)
+##
+# check_and_instrument_files(probe toto.c tata.c ...)
+function(check_and_instrument_files)
+  # Check the instrumented files really exist. This is not strictly necessary,
+  # but helps wasting hours because of a stupid typo (trust me).
+  foreach(_file IN LISTS ARGN)
+    # get absolute filename, otherwise cmake cannot test file existence
+    get_filename_component(_file_abs "${_file}" ABSOLUTE)
+    if(NOT EXISTS ${_file_abs})
+      get_source_file_property(_generated "${_file}" GENERATED)
+      if(NOT _generated)
+        qi_error("Cannot create probe. The following instrumented file does not exist and is not marked as a generated source: ${_file}")
+      endif()
+    endif()
+  endforeach()
+  if(WITH_PROBES)
+    if(NOT UNIX OR APPLE)
+      qi_error("WITH_PROBES is only available on linux")
+    endif()
+    # Set flag to enable probe in each instrumented files
+    # Setting the flag file per file instead of setting it globally helps
+    # avoiding full-rebuilds when we toggle the probes.
+    append_source_file_property(COMPILE_FLAGS "-DWITH_PROBES" "${ARGN}")
+  endif()
+endfunction()
+
+##
+# use_probes(target
+#     probe0 probes1 ...)
+#
+# The caller should have checked that the probes exist before calling
+# use_probes
+function(use_probes target)
   if(WITH_PROBES)
     if(NOT UNIX OR APPLE)
       qi_error("WITH_PROBES is only available on linux")
@@ -169,11 +219,88 @@ function(qi_use_probes target tp_def_base)
       #       LLTNG-UST only needs the urcu/compiler.h header.
       qi_use_lib("${target}" LTTNG-UST URCU DL)
     elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
-      qi_use_lib("${target}" "${tp_def_base}" DL)
+      foreach(_probe IN LISTS ARGN)
+        qi_use_lib("${target}" "${_probe}" DL)
+      endforeach()
     elseif(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
       qi_use_lib("${target}" DL)
     else()
       qi_error("QIPROBES_PROVIDER_BUILD_MODE should be BUILTIN, STATIC or SHARED. However its value is: \"${QIPROBES_PROVIDER_BUILD_MODE}\"")
     endif()
+  endif()
+endfunction()
+
+##### public functions from the new API
+
+##
+# qi_create_probe(tp_sensorlog
+#  tp_sensorlog.in.h
+#  PROVIDER_NAME qi_sensorlog
+# )
+function(qi_create_probe probe tp_in_h)
+  create_probe("${probe}" "${tp_in_h}"
+      "${ARGN}")
+endfunction()
+
+##
+# qi_instrument_files(probe
+#  PROVIDER_NAME qi_sensorlog
+# )
+function(qi_instrument_files probe)
+    qi_global_is_set(_is_probe_created "QIPROBES_${probe}_IS_CREATED")
+    if(NOT _is_probe_created)
+      qi_error("Cannot instrument files. The probe ${probe} does not exist.")
+    endif()
+    check_and_instrument_files("${ARGN}")
+endfunction()
+
+##### public functions from the legacy API
+
+##
+# qi_add_probes(tp_sensorlog.in.h
+#  PROVIDER qi_sensorlog
+#  INSTRUMENTED_FILES alsensorlog.cpp
+# )
+function(qi_add_probes tp_in_h)
+  cmake_parse_arguments(ARG "" "PROVIDER" "INSTRUMENTED_FILES" ${ARGN})
+  set(_provider "${ARG_PROVIDER}")
+  if(NOT _provider)
+    qi_error("PROVIDER argument is mandatory")
+  endif()
+  if(NOT QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
+      qi_error("Cannot create probe. When using qi_add_probe, QIPROBES_PROVIDER_BUILD_MODE should be SHARED")
+  endif()
+  get_filename_component(_tp_name "${tp_in_h}" NAME_WE)
+  create_probe("${_tp_name}" "${tp_in_h}"
+      DO_NOT_GENERATE_CPP
+      USE_LEGACY_DIRECTORY
+      PROVIDER_NAME "${_provider}")
+
+  check_and_instrument_files(${ARG_INSTRUMENTED_FILES})
+
+  if(WITH_PROBES)
+    if(NOT UNIX OR APPLE)
+      qi_error("WITH_PROBES is only available on linux")
+    endif()
+    # In addition to the flag set in check_and_instrument_files,
+    # one and only one of the application files
+    # should include ${_tp_h} with the TRACEPOINT_DEFINE macro set.
+    #
+    # As its name suggests, this macro will trigger the definition of
+    # functions.
+    # If it is done multiple times, compilation will fail because of multiple
+    # definitions. If it is not done, (or if the file does not include
+    # ${_tp_h}), linking will fail with messages like "undefined reference to
+    # `tracepoint_dlopen'".
+    #
+    # We set TRACEPOINT_DEFINE on the first instrumented file.
+    set(_flags "-DTRACEPOINT_DEFINE")
+    if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED")
+      set(_flags "${_flags} -DTRACEPOINT_PROBE_DYNAMIC_LINKAGE")
+    endif()
+    list(GET ARG_INSTRUMENTED_FILES 0 _first_instrumented_file)
+    append_source_file_property(
+        COMPILE_FLAGS "${_flags}"
+        ${_first_instrumented_file})
   endif()
 endfunction()

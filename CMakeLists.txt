@@ -14,7 +14,7 @@ find_package(qibuild)
 
 add_subdirectory("qiprobes")
 add_subdirectory("example")
-#add_subdirectory("examplenew")
+add_subdirectory("examplenew")
 
 # tests.
 #

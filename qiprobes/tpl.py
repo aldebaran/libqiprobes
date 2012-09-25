@@ -1,6 +1,7 @@
 #!/usr/bin/python
 """
-Simple templating engine designed to mimic configure_file command from CMake.
+Simple templating engine designed to mimic the configure_file command from
+CMake.
 
 Call it with -h to get some usage info.
 
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     parser = optparse.OptionParser(
             formatter=IndentedHelpFormatterRawEpilog(),
             usage='%prog [options] template',
-            description='Simple templating engine designed to mimic'
+            description='Simple templating engine designed to mimic the '
             'configure_file command from CMake.',
             epilog=epilog)
     parser.add_option('-d', nargs=2, metavar=('NAME', 'VALUE'),

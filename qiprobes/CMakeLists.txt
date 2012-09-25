@@ -17,5 +17,6 @@ function(qi_stage_cmake_data module_name filename)
 endfunction()
 
 qi_stage_cmake_data(qiprobes tp_probes.in.h)
-qi_stage_cmake_data(qiprobes tp_probes.in.c)
+qi_stage_cmake_data(qiprobes probe.in.c)
+qi_stage_cmake_data(qiprobes probe.in.cpp)
 qi_stage_cmake_data(qiprobes tpl.py)

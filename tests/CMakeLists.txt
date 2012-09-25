@@ -20,23 +20,26 @@ else()
   set(_suffix "-off")
 endif()
 
-qi_add_probes(tp_hello.in.h
-    PROVIDER qi_probes_tests_hello
+qi_create_probe(helloprobe${_suffix} tp_hello.in.h
+    PROVIDER_NAME qi_probes_tests_hello
     INSTRUMENTED_FILES hello.cpp hello_say.cpp)
+qi_instrument_files(helloprobe${_suffix}
+    hello.cpp hello_say.cpp)
 qi_create_bin("hello${_suffix}" NO_INSTALL
+    SUBMODULE
+    helloprobe${_suffix}
     SRC
     hello.cpp
-    hello_say.cpp
-    ${tp_hello_SOURCES})
-qi_use_probes("hello${_suffix}" tp_hello)
+    hello_say.cpp)
 
 
-qi_add_probes(subdir/tp_subdirhello.in.h
-    PROVIDER qi_probes_tests_subdirhello
-    INSTRUMENTED_FILES subdir/subdirhello.cpp subdir/subdirhello_say.cpp)
+qi_create_probe(subdirhelloprobe${_suffix} subdir/tp_subdirhello.in.h
+    PROVIDER_NAME qi_probes_tests_subdirhello)
+qi_instrument_files(subdirhelloprobe${_suffix}
+    subdir/subdirhello.cpp subdir/subdirhello_say.cpp)
 qi_create_bin("subdirhello${_suffix}" NO_INSTALL
+    SUBMODULE
+    subdirhelloprobe${_suffix}
     SRC
     subdir/subdirhello.cpp
-    subdir/subdirhello_say.cpp
-    ${tp_subdirhello_SOURCES})
-qi_use_probes("subdirhello${_suffix}" tp_subdirhello)
+    subdir/subdirhello_say.cpp)

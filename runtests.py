@@ -65,13 +65,22 @@ def teardown_daemons():
     subprocess.call(['killall'] + daemons)
 
 def print_separator(msg, test, config):
-    line = "==({0}{1}-{2})==".format(msg, test, config)
+    line = "==({0}{1} config:{2})==".format(msg, test, config)
     print(line + "="*(79-len(line)))
 
-def run_test(test, config):
+def run_test(test, config, providers=None):
+    """
+    Setup the LTTng daemons and run an instrumented aplication,
+
+    - test: the application binary to run
+
+    - config: one of {'off', 'shared', 'static', 'builtin'} tells how to
+      run the application and setup the tracing daemons
+
+    - provider: list of providers to LD_PRELOAD, one used if config=='shared'.
+
+    """
     assert(config in ['off', 'shared', 'static', 'builtin'])
-    # the examplehello test is only built for 'off' or 'shared'
-    assert(test != 'examplehello' or config in ['off', 'shared'])
 
     print_separator("running ", test, config)
 
@@ -79,21 +88,14 @@ def run_test(test, config):
         cleanup_traces()
         setup_daemons()
 
-    if config == 'shared':
+    if config == 'shared' and providers is not None:
         # setup the env for LD_PRELOAD the probes
-        if test == 'examplehello':
-            providers = ['tp_example_hello', 'tp_example_say']
-        else:
-            providers = ['tp_' + test]
         preload = " ".join(["{0}/lib/probes/lib{1}.so".format(sdk_dir, tp)
                 for tp in providers])
         env = {"LD_PRELOAD": preload}
     else:
         env = None
-    if test == 'examplehello':
-        test_bin = '{0}/bin/{1}'.format(sdk_dir, test)
-    else:
-        test_bin = '{0}/bin/{1}-{2}'.format(sdk_dir, test, config)
+    test_bin = '{0}/bin/{1}'.format(sdk_dir, test)
     call_with_env([test_bin], env=env)
 
     if config != 'off':
@@ -101,16 +103,20 @@ def run_test(test, config):
         print_separator("viewing ", test, config)
         view_traces()
     print_separator("done ", test, config)
+    print("\n\n")
 
 if __name__ == "__main__":
-    run_test('examplehello', 'off')
-    #run_test('examplehello', 'shared')
-    run_test('examplenewhello', 'off')
-    #run_test('examplehello', 'shared')
+    config = 'shared'
+    run_test('examplehello', config,
+            ['tp_example_hello', 'tp_example_say'])
+    run_test('examplenewhello', config,
+            ['examplenewsayprobe', 'examplenewhelloprobe'])
     tests = ('hello', 'subdirhello')
     configs = ('off', 'shared', 'builtin') # todo: add 'static'
-    #tests = [tests[1]]
-    #configs = [configs[1]]
-    for test in tests:
-        for config in configs:
-            run_test(test, config)
+    #tests = tests[0:1]
+    #configs = configs[1:2]
+    for config in configs:
+        for test in tests:
+            test_bin = '{0}-{1}'.format(test, config)
+            providers = ['{0}probe-{1}'.format(test, config)]
+            run_test(test_bin, config, providers)

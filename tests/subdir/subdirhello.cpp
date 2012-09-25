@@ -2,7 +2,7 @@
 void say(int);
 
 int main(int argc, const char* argv[]) {
-    for (int i=0; i<20; ++i)
+    for (int i=0; i<10; ++i)
     {
         tracepoint(qi_probes_tests_subdirhello, counting, i);
         say(i);
