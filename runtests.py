@@ -64,37 +64,51 @@ def teardown_daemons():
     daemons.reverse()
     subprocess.call(['killall'] + daemons)
 
-def print_separator(msg):
+def print_separator(msg, test, config):
     line = "==({0}{1}-{2})==".format(msg, test, config)
     print(line + "="*(79-len(line)))
 
-def run(test, config):
-    assert(test in ('hello', 'subdirhello'))
-    assert(config in ('off', 'shared', 'static', 'builtin'))
-    print_separator("running ")
+def run_test(test, config):
+    assert(config in ['off', 'shared', 'static', 'builtin'])
+    # the examplehello test is only built for 'off' or 'shared'
+    assert(test != 'examplehello' or config in ['off', 'shared'])
+
+    print_separator("running ", test, config)
+
     if config != 'off':
         cleanup_traces()
         setup_daemons()
 
     if config == 'shared':
-        env = {"LD_PRELOAD": "{0}/lib/probes/libtp_{1}.so".format(sdk_dir, test)}
+        # setup the env for LD_PRELOAD the probes
+        if test == 'examplehello':
+            providers = ['tp_example_hello', 'tp_example_say']
+        else:
+            providers = ['tp_' + test]
+        preload = " ".join(["{0}/lib/probes/lib{1}.so".format(sdk_dir, tp)
+                for tp in providers])
+        env = {"LD_PRELOAD": preload}
     else:
         env = None
-    test_bin = ['{0}/bin/{1}-{2}'.format(sdk_dir, test, config)]
-    call_with_env(test_bin, env=env)
+    if test == 'examplehello':
+        test_bin = '{0}/bin/{1}'.format(sdk_dir, test)
+    else:
+        test_bin = '{0}/bin/{1}-{2}'.format(sdk_dir, test, config)
+    call_with_env([test_bin], env=env)
 
     if config != 'off':
         teardown_daemons()
-        print_separator("viewing ")
+        print_separator("viewing ", test, config)
         view_traces()
-    print_separator("done ")
-
+    print_separator("done ", test, config)
 
 if __name__ == "__main__":
+    run_test('examplehello', 'off')
+    #run_test('examplehello', 'shared')
     tests = ('hello', 'subdirhello')
     configs = ('off', 'shared', 'builtin') # todo: add 'static'
     #tests = [tests[1]]
     #configs = [configs[1]]
     for test in tests:
         for config in configs:
-            run(test, config)
+            run_test(test, config)

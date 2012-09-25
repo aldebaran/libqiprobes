@@ -22,6 +22,7 @@ add_subdirectory("qiprobes")
 # binary directories which serve as distinct namespaces.
 #
 # The script runtests.py allows to run them all.
+add_subdirectory("example")
 
 if(WITH_PROBES)
   set(QIPROBES_PROVIDER_BUILD_MODE "BUILTIN")
