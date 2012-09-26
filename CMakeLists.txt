@@ -13,6 +13,8 @@ project(qiprobes)
 find_package(qibuild)
 
 add_subdirectory("qiprobes")
+add_subdirectory("example")
+#add_subdirectory("examplenew")
 
 # tests.
 #
@@ -21,9 +23,7 @@ add_subdirectory("qiprobes")
 # The "tests" source directory is included several times with different
 # binary directories which serve as distinct namespaces.
 #
-# The script runtests.py allows to run them all.
-add_subdirectory("example")
-
+# The script runtests.py allows to run all the tests and the examples
 if(WITH_PROBES)
   set(QIPROBES_PROVIDER_BUILD_MODE "BUILTIN")
   add_subdirectory("tests" "tests-builtin")

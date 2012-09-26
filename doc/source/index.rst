@@ -6,6 +6,7 @@ qiprobes documentation
 
    intro
    example
+   examplenew
    limitations
 
 

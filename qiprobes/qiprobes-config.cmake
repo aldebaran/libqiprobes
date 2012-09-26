@@ -116,7 +116,7 @@ function(qi_add_probes tp_def)
     #
     # Here is an example:
     # libbn-ipc implements the synchronisation mechanism between the HAL and
-    # the DCM. The HAL is a standalone apllication, the DCM is a module (shared
+    # the DCM. The HAL is a standalone application, the DCM is a module (shared
     # library) which is LD_PRELOAD'ed by the NAOqi application.
     #
     # We added probes to libbn-ipc.a. If we build the probes provider into a
