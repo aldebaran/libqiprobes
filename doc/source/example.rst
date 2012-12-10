@@ -47,7 +47,7 @@ library are the example from qiprobes.
 The rest of the file describes the tracepoint payload, and how it is stored in
 the trace. The details about the tracepoints declaration are documented in
 `lttng-ust manual page
-<http://lttng.org/doc/man-pages/man3/lttng-ust.3.html>`_.
+<http://lttng.org/files/doc/man-pages/man3/lttng-ust.3.html>`_.
 
 Using the tracepoints
 ---------------------
