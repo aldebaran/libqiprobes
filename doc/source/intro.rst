@@ -5,7 +5,7 @@ About qiprobes
 --------------
 
 qiprobes is a small cmake module which streamlines the instrumentation
-of C++ code with the `LTTng 2.0 <http://lttng.org>`_ tracing tool in the
+of C++ code with the `LTTng 2.1 <http://lttng.org>`_ tracing tool in the
 qibuild framework. It generates files from templates (to save you some typing)
 and adds the proper targets to the build system.
 

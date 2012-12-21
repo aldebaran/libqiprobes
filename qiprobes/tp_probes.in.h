@@ -2,8 +2,8 @@
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER @_provider@
 
-#undef TRACEPOINT_INCLUDE_FILE
-#define TRACEPOINT_INCLUDE_FILE @_tp_h@
+#undef TRACEPOINT_INCLUDE
+#define TRACEPOINT_INCLUDE "@_tp_h@"
 
 #ifdef __cplusplus
 extern "C" {
