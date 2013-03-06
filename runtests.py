@@ -107,8 +107,6 @@ def run_test(test, config, providers=None):
 
 if __name__ == "__main__":
     config = 'shared'
-    run_test('examplehello', config,
-            ['tp_example_hello', 'tp_example_say'])
     run_test('examplenewhello', config,
             ['examplenewsayprobe', 'examplenewhelloprobe'])
     tests = ('hello', 'subdirhello')
