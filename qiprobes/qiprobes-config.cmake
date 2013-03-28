@@ -14,7 +14,7 @@ endif()
 # todo: maybe we should make it a real option (in the cache) or set it
 #       on a per probe basis
 if(NOT DEFINED QIPROBES_PROVIDER_BUILD_MODE)
-    set(QIPROBES_PROVIDER_BUILD_MODE "SHARED")
+    set(QIPROBES_PROVIDER_BUILD_MODE "BUILTIN")
 endif()
 
 ##### internal functions
