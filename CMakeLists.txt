@@ -13,7 +13,7 @@ project(qiprobes)
 find_package(qibuild)
 
 add_subdirectory("qiprobes")
-add_subdirectory("examplenew")
+add_subdirectory("example")
 
 # tests.
 #

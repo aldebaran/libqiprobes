@@ -1,18 +1,18 @@
-Example with the new API
-========================
+Example
+=======
 
-You have a simple ``examplenewhello`` application which uses ``libexamplenewsay``.
+You have a simple ``examplehello`` application which uses ``libexamplesay``.
 You build it with::
 
-    qi_create_lib(examplenewsay
+    qi_create_lib(examplesay
         SRC
         say.h
         say.cpp)
-    qi_stage_lib(examplenewsay)
-    qi_create_bin(examplenewhello
+    qi_stage_lib(examplesay)
+    qi_create_bin(examplehello
         SRC
         hello.cpp)
-    qi_use_lib(examplenewhello examplenewsay)
+    qi_use_lib(examplehello examplesay)
 
 You want to instrument it by adding LTTng tracepoints to both the library and
 the executable. To make life easier, you will use the qiprobes helper.
@@ -25,24 +25,24 @@ This tutorial assumes qiprobes dependency is not optional.
 Tracepoints definition
 ----------------------
 
-First, declare the events you need in two files named ``tp_examplenew_say.in.h``
+First, declare the events you need in two files named ``tp_example_say.in.h``
 
-.. literalinclude:: /../../examplenew/tp_examplenew_say.in.h
+.. literalinclude:: /../../example/tp_example_say.in.h
    :language: c
 
-and ``tp_examplenew_hello.in.h``
+and ``tp_example_hello.in.h``
 
-.. literalinclude:: /../../examplenew/tp_examplenew_hello.in.h
+.. literalinclude:: /../../example/tp_example_hello.in.h
    :language: c
 
 All the events in a file should use the same "provider", which are
-``qi_probes_examplenew_say`` and ``qi_probes_examplenew_hello`` respectively.
+``qi_probes_example_say`` and ``qi_probes_example_hello`` respectively.
 They act has a global namespace for your application events, and should be
 unique within the whole traced system.
 
 By convention, all Aldebaran events should start with ``qi_``. Here
-it is followed by ``probes_examplenew`` because the traced application and
-library are the examplenew from qiprobes.
+it is followed by ``probes_example`` because the traced application and
+library are the example from qiprobes.
 
 The rest of the file describes the tracepoint payload, and how it is stored in
 the trace. The details about the tracepoints declaration are documented in
@@ -53,14 +53,14 @@ Using the tracepoints
 ---------------------
 
 Then, include the headers and add the tracepoints in the application files,
-here ``examplenewsay.cpp``
+here ``examplesay.cpp``
 
-.. literalinclude:: /../../examplenew/say.cpp
+.. literalinclude:: /../../example/say.cpp
    :language: c++
 
-and ``examplenewhello.cpp``
+and ``examplehello.cpp``
 
-.. literalinclude:: /../../examplenew/hello.cpp
+.. literalinclude:: /../../example/hello.cpp
    :language: c++
 
 Tying it all together
@@ -68,7 +68,7 @@ Tying it all together
 
 Eventually, alter your CMakeLists.txt to add support for the probes:
 
-.. literalinclude:: /../../examplenew/CMakeLists.txt
+.. literalinclude:: /../../example/CMakeLists.txt
    :language: cmake
 
 ``qi_create_probe`` will:
@@ -76,27 +76,27 @@ Eventually, alter your CMakeLists.txt to add support for the probes:
  * create a qibuild submodule named like the probe, which should be used to
    the instrumented application/library.
 
- * use ``tp_examplenew_say.in.h`` to create ``tp_examplenew_say.h`` which is
+ * use ``tp_example_say.in.h`` to create ``tp_example_say.h`` which is
    #included by user code (``say.cpp``) and add it to the submodule.
 
  * if ``WITH_PROBES`` is true:
 
     * add libdl to the submodule
 
-    * use ``tp_examplenew_say.in.h`` to create ``examplenewsayprobe.cpp`` and
+    * use ``tp_example_say.in.h`` to create ``examplesayprobe.cpp`` and
       add it to the submodule.
 
-    * use ``tp_examplenew_say.in.h`` to create ``examplenewsayprobe.c``
+    * use ``tp_example_say.in.h`` to create ``examplesayprobe.c``
 
     * if ``QIPROBES_PROVIDER_BUILD_MODE`` is "SHARED"
 
-      * build ``examplenewsayprobe.c`` into ``examplenewsayprobe.so``,
+      * build ``examplesayprobe.c`` into ``examplesayprobe.so``,
         which should be LD_PRELOADED (at runtime) for the tracing to work.
         This library is linked with ``liblttng-ust.so``.
 
     * if ``QIPROBES_PROVIDER_BUILD_MODE`` is "BUILTIN"
 
-      * ``examplenewsayprobe.c`` is added to the submodule
+      * ``examplesayprobe.c`` is added to the submodule
 
       * add llttng-ust and urcu as dependencies of the submodule
 

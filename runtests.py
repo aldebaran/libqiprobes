@@ -107,8 +107,8 @@ def run_test(test, config, providers=None):
 
 if __name__ == "__main__":
     config = 'shared'
-    run_test('examplenewhello', config,
-            ['examplenewsayprobe', 'examplenewhelloprobe'])
+    run_test('examplehello', config,
+            ['examplesayprobe', 'examplehelloprobe'])
     tests = ('hello', 'subdirhello')
     configs = ('off', 'shared', 'builtin') # todo: add 'static'
     #tests = tests[0:1]

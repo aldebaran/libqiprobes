@@ -5,5 +5,5 @@ qiprobes documentation
    :maxdepth: 2
 
    intro
-   examplenew
+   example
    limitations
