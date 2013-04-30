@@ -20,10 +20,10 @@ else()
   set(_suffix "-off")
 endif()
 
-qi_create_probe(helloprobe${_suffix} tp_hello.in.h
+qiprobes_create_probe(helloprobe${_suffix} tp_hello.in.h
     PROVIDER_NAME qi_probes_tests_hello
     INSTRUMENTED_FILES hello.cpp hello_say.cpp)
-qi_instrument_files(helloprobe${_suffix}
+qiprobes_instrument_files(helloprobe${_suffix}
     hello.cpp hello_say.cpp)
 qi_create_bin("hello${_suffix}" NO_INSTALL
     SUBMODULE
@@ -33,9 +33,9 @@ qi_create_bin("hello${_suffix}" NO_INSTALL
     hello_say.cpp)
 
 
-qi_create_probe(subdirhelloprobe${_suffix} subdir/tp_subdirhello.in.h
+qiprobes_create_probe(subdirhelloprobe${_suffix} subdir/tp_subdirhello.in.h
     PROVIDER_NAME qi_probes_tests_subdirhello)
-qi_instrument_files(subdirhelloprobe${_suffix}
+qiprobes_instrument_files(subdirhelloprobe${_suffix}
     subdir/subdirhello.cpp subdir/subdirhello_say.cpp)
 qi_create_bin("subdirhello${_suffix}" NO_INSTALL
     SUBMODULE

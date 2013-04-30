@@ -40,11 +40,11 @@ endfunction()
 ##### public functions
 
 ##
-# qi_create_probe(tp_sensorlog
+# qiprobes_create_probe(tp_sensorlog
 #  tp_sensorlog.in.h
 #  PROVIDER_NAME qi_sensorlog
 # )
-function(qi_create_probe probe tp_in_h)
+function(qiprobes_create_probe probe tp_in_h)
   cmake_parse_arguments(ARG "" "PROVIDER_NAME" "" ${ARGN})
   set(_provider "${ARG_PROVIDER_NAME}")
   if(NOT _provider)
@@ -180,10 +180,10 @@ function(qi_create_probe probe tp_in_h)
 endfunction()
 
 ##
-# qi_instrument_files(probe
+# qiprobes_instrument_files(probe
 #  PROVIDER_NAME qi_sensorlog
 # )
-function(qi_instrument_files probe)
+function(qiprobes_instrument_files probe)
   qi_global_is_set(_is_probe_created "QIPROBES_${probe}_IS_CREATED")
   if(NOT _is_probe_created)
     qi_error("Cannot instrument files. The probe ${probe} does not exist.")
@@ -209,4 +209,15 @@ function(qi_instrument_files probe)
     # avoiding full-rebuilds when we toggle the probes.
     append_source_file_property(COMPILE_FLAGS "-DWITH_PROBES" "${ARGN}")
   endif()
+endfunction()
+
+##### DEPRECATED for compat
+function(qi_create_probe)
+  message(STATUS "DEPRECATED: replace qi_create_probe with qiprobes_create_probe")
+  qiprobes_create_probe(${ARGN})
+endfunction()
+
+function(qi_instrument_files)
+  message(STATUS "DEPRECATED: replace qi_instrument_files with qiprobes_instrument_files")
+  qiprobes_instrument_files(${ARGN})
 endfunction()

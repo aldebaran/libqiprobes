@@ -5,7 +5,7 @@ qi_stage_cmake(qiprobes-config.cmake)
 # So this function make sure the data are:
 #   * generated next to the cmake file at compile time
 #   * installed next to the cmake file at install time
-function(qi_stage_cmake_data module_name filename)
+function(qiprobes_stage_cmake_data module_name filename)
   # Depends on impementation of qi_stage_cmake ...
   configure_file(${filename}
     ${QI_SDK_DIR}/${QI_SDK_CMAKE_MODULES}/${filename}
@@ -16,7 +16,7 @@ function(qi_stage_cmake_data module_name filename)
   )
 endfunction()
 
-qi_stage_cmake_data(qiprobes tp_probes.in.h)
-qi_stage_cmake_data(qiprobes probe.in.c)
-qi_stage_cmake_data(qiprobes probe.in.cpp)
-qi_stage_cmake_data(qiprobes tpl.py)
+qiprobes_stage_cmake_data(qiprobes tp_probes.in.h)
+qiprobes_stage_cmake_data(qiprobes probe.in.c)
+qiprobes_stage_cmake_data(qiprobes probe.in.cpp)
+qiprobes_stage_cmake_data(qiprobes tpl.py)

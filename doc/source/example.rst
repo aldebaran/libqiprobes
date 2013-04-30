@@ -71,7 +71,7 @@ Eventually, alter your CMakeLists.txt to add support for the probes:
 .. literalinclude:: /../../example/CMakeLists.txt
    :language: cmake
 
-``qi_create_probe`` will:
+``qiprobes_create_probe`` will:
 
  * create a qibuild submodule named like the probe, which should be used to
    the instrumented application/library.
