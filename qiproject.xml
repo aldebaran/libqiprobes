@@ -1,4 +1,4 @@
-<project name="qiprobes">
-    <sphinxdoc name="qiprobes" src="doc" release="false">
-    </sphinxdoc>
+<project version="3">
+    <qibuild name="qiprobes"/>
+    <project src="doc"/>
 </project>
