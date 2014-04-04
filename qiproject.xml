@@ -1,5 +1,7 @@
 <project version="3">
-    <qibuild name="qiprobes"/>
-    <project src="doc"/>
-  <depends buildtime="true" names="liblttng-ust" />
+  <qibuild name="qiprobes">
+    <depends buildtime="true" names="liblttng-ust" />
+  </qibuild>
+  <project src="doc"/>
+  <project src="ctrl"/>
 </project>
