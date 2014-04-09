@@ -124,7 +124,7 @@ function(qiprobes_create_probe probe tp_in_h)
       #       the urcu/compiler.h header.
       qi_submodule_add("${probe}"
           SRC "${_tp_c}"
-          DEPENDS LIBLTTNG_UST LIBURCU)
+          DEPENDS LTTNG-UST URCU)
     elseif((QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC") OR
            (QIPROBES_PROVIDER_BUILD_MODE STREQUAL "SHARED"))
       if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
@@ -139,7 +139,7 @@ function(qiprobes_create_probe probe tp_in_h)
           SUBFOLDER probes)
       # note: it is not really necessary to link with URCU, but LLTNG-UST needs
       #       the urcu/compiler.h header.
-      qi_use_lib("${_probe_lib}" LIBLTTNG_UST LIBURCU DL)
+      qi_use_lib("${_probe_lib}" LTTNG-UST URCU DL)
       if(QIPROBES_PROVIDER_BUILD_MODE STREQUAL "STATIC")
         # note: we do not stage the shared lib because it will be LD_PRELOADED
         #       but not linked with.

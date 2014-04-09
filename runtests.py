@@ -27,7 +27,7 @@ import subprocess
 import optparse
 
 traces_dir = os.path.expanduser('~/lttng-traces')
-sdk_dir = os.path.expanduser('~/ar/a/sdk/libqiprobes/build-linux64/sdk')
+sdk_dir = os.path.expanduser('~/ar/m/build-linux64/qiprobes/sdk')
 
 def call_with_env(args, env=None):
     """Call a subprocess while updating its environment.
