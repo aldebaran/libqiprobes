@@ -324,7 +324,7 @@ void ProbesLogTriggerPrivate::start()
   // then subscribe to specific categories
   for (CondVect::const_iterator it=_conds.begin(); it!=_conds.end();++it)
   {
-    qi::log::setCategory(std::string(it->cat), it->level, _id);
+    qi::log::addFilter(std::string(it->cat), it->level, _id);
   }
 }
 
