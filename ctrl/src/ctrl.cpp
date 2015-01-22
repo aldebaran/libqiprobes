@@ -39,7 +39,7 @@ public:
   ~ProbesCtrl()
   {
     {
-      boost::mutex::scoped_lock(_mutex);
+      boost::mutex::scoped_lock l(_mutex);
       _state = STOP;
       _condition.notify_all();
     }
