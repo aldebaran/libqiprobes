@@ -1,6 +1,8 @@
 <project version="3">
   <qibuild name="qiprobes">
-    <depends buildtime="true" names="liblttng-ust" />
+    <depends buildtime="true" runtime="true"
+      names="liblttng_ust liburcu
+             dl rt pthread" />
   </qibuild>
   <project src="doc"/>
   <project src="ctrl"/>
