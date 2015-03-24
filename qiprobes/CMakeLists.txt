@@ -11,7 +11,7 @@ function(qiprobes_stage_cmake_data module_name filename)
     ${QI_SDK_DIR}/${QI_SDK_CMAKE_MODULES}/${filename}
     COPYONLY)
   install(FILES "${filename}"
-    COMPONENT cmake
+    COMPONENT devel
     DESTINATION "${QI_SDK_CMAKE}/${module_name}"
   )
 endfunction()
