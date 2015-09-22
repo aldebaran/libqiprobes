@@ -352,7 +352,7 @@ void ProbesLogTriggerPrivate::log(const qi::LogLevel /*verb*/,
 void ProbesLogTriggerPrivate::stop()
 {
   boost::unique_lock<boost::mutex> lock(_isSubscribedMutex);
-  qi::log::removeLogHandler(_name);
+  qi::log::removeHandler(_name);
   _id = 0;
   _isSubscribed = false;
 }
