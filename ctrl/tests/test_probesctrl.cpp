@@ -2,13 +2,16 @@
 #include <qiprobes/ctrl.hpp>
 #include <qi/log.hpp>
 #include <qi/application.hpp>
+#include <boost/function.hpp>
+
 
 class Increment
 {
 public:
-  int &n;
-  Increment(int &n) : n(n) {};
-  void operator()() {++n;}
+  mutable int *n = nullptr;
+  Increment() = default;
+  Increment(int &n) : n(&n) {}
+  void operator()() const {++(*n);}
 };
 
 TEST(ProbesCtrl, invalid_trigger_catgory)
