@@ -1,5 +1,6 @@
 <project version="3">
   <qibuild name="libqiprobesctrl">
-    <depends buildtime="true" names="libqi liblttng_ust lttng_tools" />
+   <depends testtime="true" names="gtest"/>
+   <depends buildtime="true" names="libqi liblttng_ust lttng_tools" />
   </qibuild>
 </project>
